@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mount -t tmpfs -o size=30m tmpfs /var/www/html/video
+mount -t tmpfs -o size=10m tmpfs /var/www/html/audio
+
+nohup /var/www/html/stream.webcam.video.sh &
+nohup /var/www/html/stream.webcam.audio.sh &
+nohup /var/www/html/nodejs.server.sh &
+

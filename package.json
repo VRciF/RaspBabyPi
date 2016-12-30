@@ -1,0 +1,19 @@
+{
+  "name": "mp3streamer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "dependencies": {
+    "fs-extra": "^1.0.0",
+    "glob": "^7.1.1",
+    "inotify": "^1.4.1",
+    "js-base64": "^2.1.9",
+    "nodejs-websocket": "^1.7.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

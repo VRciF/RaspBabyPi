@@ -1,0 +1,331 @@
+<html>
+    <head>
+        <script src="jquery-3.1.1.min.js"></script>
+
+        <script src="node_modules/base64-js/base64js.min.js"></script>
+
+        <style>
+            body {
+       	        margin: 0px;
+    	        padding: 0px;
+            }
+            canvas#meter {
+    	        border: black 1px solid;
+    	        margin-top: 70px;
+            }
+            h1, h3 {
+    	        margin: 0px;
+            }
+        </style>
+
+    </head>
+    <body>
+        <div id="debugDiv" style="width:400px;height:25px;"></div><button onclick="sendReboot()">Reboot</button><br/>
+        <img src="" id="tmp" style="display:none;">
+        <img src="" id="stream" style=""/>
+        <canvas id="meter" width="100" height="400"></canvas>
+        <button onclick="sendShutdown()">Shutdown</button>
+        
+        <script>
+            var lastImageTimestamp = 0;
+            var ws = null;
+
+               Date.prototype.yyyymmdd = function() {
+                   var mm = this.getMonth() + 1; // getMonth() is zero-based
+                   var dd = this.getDate();
+
+                   return [this.getFullYear(),
+                           (mm>9 ? '' : '0') + mm,
+                           (dd>9 ? '' : '0') + dd,
+                          ].join('-')+" "+[this.getHours(),this.getMinutes(),this.getSeconds()].join(':');
+               };
+               setInterval(function(){
+                   var now = new Date().yyyymmdd();
+                   $('#debugDiv').html(now+" "+(!ws ? ": Websocket not connected!" : ""));
+                   var nows = new Date().getTime()/1000;
+                   if((nows-lastImageTimestamp)>3){
+                       $('body').css({backgroundColor: 'red'});
+                   }
+                   else{
+                       $('body').css({backgroundColor: ''});
+                   }
+               }, 1000);
+
+    function copyBuffers(bufferSize, currentBuffer, outputBuffer, destinationOffset){
+        if(!destinationOffset){ destinationOffset = 0; }
+
+        var output = outputBuffer.getChannelData(0);
+
+        var pendingSize = bufferSize;
+        if(!currentBuffer){
+            output.fill(0, destinationOffset);
+        }
+        else{
+            var no       = currentBuffer.numberOfChannels;
+            var channel0 = currentBuffer.getChannelData(0);
+            if(channel0.length - currentBuffer.currentOffset < pendingSize){
+                pendingSize = channel0.length-currentBuffer.currentOffset;
+            }
+
+            outputBuffer.copyToChannel(currentBuffer.currentOffset>0 ? channel0.slice(currentBuffer.currentOffset, currentBuffer.currentOffset+pendingSize) : channel0, 0, destinationOffset);
+
+            if(no==2){
+                var channel1 = currentBuffer.getChannelData(1);
+                for (var i=0;destinationOffset < pendingSize; destinationOffset++,i++) {
+                    output[destinationOffset] = (output[destinationOffset] + channel1[currentBuffer.currentOffset + i])/2;
+                    //if(output[destinationOffset] <= 0.015){ output[destinationOffset] = 0; }
+                    //console.log(output[destinationOffset]);
+                }
+            }
+
+            currentBuffer.currentOffset += pendingSize;
+        }
+
+        return pendingSize;
+    }
+
+
+    var canvas = document.querySelector('#meter');
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width;
+    var h = canvas.height;
+    //fill the canvas first
+    ctx.fillStyle = '#555';
+    ctx.fillRect(0,0,w,h);
+
+    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    var context = new AudioContext();
+    var offset = 0;
+
+    var bufferSize = 16384;
+    var analyserNode = context.createAnalyser();
+    var sourceNode = context.createScriptProcessor(bufferSize, 1, 1);
+    //var analyser = context.createScriptProcessor(1024,1,1);
+/*
+    var compressor = context.createDynamicsCompressor();
+    compressor.threshold.value = -50;
+    compressor.knee.value = 40;
+    compressor.ratio.value = 12;
+    compressor.reduction.value = -20;
+    compressor.attack.value = 0;
+    compressor.release.value = 0.25;
+
+    var filter = context.createBiquadFilter();
+    filter.Q.value = 8.30;
+    filter.frequency.value = 355;
+    filter.type = 'bandpass';
+    filter.connect(compressor);
+
+    //var filter = context.createBiquadFilter();
+    //filter.Q.value = 1.30;
+    //filter.frequency.value = 600;
+    //filter.connect(context.destination);
+
+    //sourceNode.connect(filter);
+    //filter.connect(analyser);
+    //analyser.connect(context.destination);
+
+    //sourceNode.connect(context.destination);
+
+
+    sourceNode.connect(filter);
+    filter.connect(context.destination);
+
+    // working ok
+    //sourceNode.connect(filter);
+    //filter.connect(context.destination);
+    //compressor.connect(context.destination);
+
+    //sourceNode.connect(filter);
+    //filter.connect(compressor);
+    //compressor.connect(context.destination);
+
+    //sourceNode.connect(compressor);
+    //compressor.connect(filter);
+    //filter.connect(context.destination);
+*/
+    sourceNode.connect(context.destination);
+
+    sourceNode.connect(analyserNode);
+    analyserNode.connect(context.destination);
+
+    //sourceNode.connect(analyser);
+    //analyser.connect(context.destination);
+
+    sourceNode.nextBuffer = null;
+    sourceNode.currentBuffer = null;
+    sourceNode.onaudioprocess = function(e) {
+        //console.log("called", e.outputBuffer);
+        if(!sourceNode.currentBuffer){
+            sourceNode.currentBuffer = sourceNode.nextBuffer;
+            sourceNode.nextBuffer = null;
+        }
+
+        var destinationOffset = 0;
+        var copied = copyBuffers(bufferSize, sourceNode.currentBuffer, e.outputBuffer, destinationOffset);
+
+        if(sourceNode.currentBuffer){
+            var channel0 = sourceNode.currentBuffer.getChannelData(0);
+            if(sourceNode.currentBuffer.currentOffset >= channel0.length){
+                sourceNode.currentBuffer = sourceNode.nextBuffer;
+                sourceNode.nextBuffer = null;
+            }
+        }
+        destinationOffset += copied;
+        if(destinationOffset < bufferSize){
+            copied = copyBuffers(bufferSize-destinationOffset, sourceNode.currentBuffer, e.outputBuffer, destinationOffset);
+
+            destinationOffset += copied;
+            if(destinationOffset < bufferSize){
+                copied = copyBuffers(bufferSize-destinationOffset, null, e.outputBuffer, destinationOffset);
+            }
+        }
+    }
+
+    frameLooper();
+
+    function drawAudioMeter(max){
+        //var reference = -72;
+        var reference = -30;
+
+        //max = 0;
+        //convert from magitude to decibel
+        //console.log(max);
+        var db = 20*Math.log(Math.max(max,Math.pow(10,reference/20)))/Math.LN10;
+        //It's time to draw on the canvas
+        //create the gradient
+        var grad = ctx.createLinearGradient(w/10,h*0.2,w/10,h*0.95);
+        grad.addColorStop(0,'red');
+        grad.addColorStop(-6/reference,'yellow');
+        grad.addColorStop(1,'green');
+        //fill the background
+        ctx.fillStyle = '#555';
+        ctx.fillRect(0,0,w,h);
+        ctx.fillStyle = grad;
+        //draw the rectangle
+        ctx.fillRect(w/10,h*0.8*(db/reference),w*8/10,(h*0.95)-h*0.8*(db/reference));
+        //draw the text out
+        ctx.fillStyle="white";
+        ctx.font = "Arial 12pt";
+        ctx.textAlign = "center";
+        ctx.fillText(Math.round(db*100)/100+' dB',w/2,h-h*0.025);
+    }
+
+    function frameLooper()
+    {
+        requestAnimationFrame(frameLooper);
+        var fbc_array=new Float32Array(analyserNode.frequencyBinCount);
+        analyserNode.getFloatFrequencyData(fbc_array);
+        var max = Math.max(...fbc_array);
+        drawAudioMeter(max);
+    }
+/*
+    //program our analyser
+    analyser.onaudioprocess = function(e){
+        var out = e.outputBuffer.getChannelData(0);
+        var int = e.inputBuffer.getChannelData(0);
+        var max = Math.max(...int);
+
+
+        //for(var i = 0; i < int.length; i++){
+        //    out[i] = 0;//prevent feedback and we only need the input data
+        //}
+
+        drawAudioMeter(max);
+    };
+
+*/
+    function base64ToArrayBuffer(b64) {
+        var binary_string = atob(b64);
+        var len = binary_string.length;
+        var bytes = new Uint8Array( len );
+        for (var i = 0; i < len; i++)        {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    var imgLoading = false;
+
+    $("#stream").on("load", function() {
+        imgLoading = false;
+    });
+
+    function connectWebsocket(){
+        ws = new WebSocket("ws://"+window.location.hostname+":8080/");
+
+        ws.onopen = function()
+        {
+           // Web Socket is connected, send data using send()
+           console.log("connected");
+        };
+
+        ws.onmessage = function (evt)
+        {
+            var packet = JSON.parse(evt.data);
+
+            if(packet.audio){
+                try{
+                    var received_msg = base64ToArrayBuffer(packet.audio);
+                        context.decodeAudioData(received_msg, function(buffer) {
+                            buffer.currentOffset = 0;
+                            sourceNode.nextBuffer = buffer;
+                        }, function(err){
+                            console.log("decode failed", err);
+                        });
+
+
+//                    var reader = new FileReader();
+//                    reader.addEventListener("loadend", function() {
+//                        // reader.result beinhaltet den Inhalt des Blobs
+//                        context.decodeAudioData(reader.result, function(buffer) {
+//                            buffer.currentOffset = 0;
+//                            sourceNode.nextBuffer = buffer;
+//                        }, function(err){
+//                            console.log("decode failed", err);
+//                        });
+//                    });
+//                    reader.readAsArrayBuffer(received_msg);
+                }catch(e){
+                    console.log("reading audio failed: ", e);
+                }
+            }
+            if(packet.video && !imgLoading){
+                lastImageTimestamp = new Date().getTime()/1000;
+
+                imgLoading = true;
+                var dataurl = "data:image/jpg;base64,"+packet.video;
+                $('#stream').attr("src", dataurl);
+            }
+            ws.send(JSON.stringify({cmd:"received"}));
+        };
+        ws.onerror = function(){
+            ws.close();
+            ws = null;
+            setTimeout(connectWebsocket, 1000);
+        };
+
+        ws.onclose = function()
+        {
+            if(ws){
+                ws = null;
+                setTimeout(connectWebsocket, 1000);
+            }
+        };
+
+    }
+
+    $(document).ready(function(){
+        connectWebsocket();
+    });
+
+    function sendReboot(){
+        if(ws){ ws.send(JSON.stringify({cmd:"reboot"})); }
+    }
+    function sendShutdown(){
+        if(ws){ ws.send(JSON.stringify({cmd:"shutdown"})); }
+    }
+</script>
+
+    </body>
+</html>
