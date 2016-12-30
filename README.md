@@ -5,7 +5,7 @@ The goal for this project is to have an easy to use babyphone including video an
 
 The webcam resolution is fixed to 640x480 and audio bitrate and quality is not altered.
 
-So the source of the video/audio stream is a webcam/microphone. The webcam is used to capture around 10 frames per second as jpgs which are sent to a browser using websocket.
+So the source of the video/audio stream is a webcam/microphone whereas the destination is a webbrowser. The webcam is used to capture around 10 frames per second as jpgs which are sent to a browser using websocket.
 The microphone creates 1 second mp3 chunks which are sent to the browser using websocket too and decoded using the web audio api.
 
 So basically every browser should be able to get the video stream, whereas for the audio stream a browser supporting web audio api is needed.
