@@ -1,10 +1,16 @@
 #!/bin/bash
 
-mount -t tmpfs -o size=30m tmpfs /var/www/html/video
-mount -t tmpfs -o size=10m tmpfs /var/www/html/audio
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-nohup /var/www/html/stream.webcam.video.sh &
-nohup /var/www/html/stream.webcam.audio.sh &
-nohup /var/www/html/cleanup.dirs.sh &
-nohup /var/www/html/nodejs.server.sh &
+mount -t tmpfs -o size=30m tmpfs $DIR/video
+mount -t tmpfs -o size=10m tmpfs $DIR/audio
+
+pushd $DIR
+
+nohup ./stream.webcam.video.sh &
+nohup ./stream.webcam.audio.sh &
+nohup ./cleanup.dirs.sh &
+nohup ./nodejs.server.sh &
+
+popd
 

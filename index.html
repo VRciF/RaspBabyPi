@@ -50,9 +50,8 @@
                    if((nows-lastImageTimestamp)>3){
                        $('body').css({backgroundColor: 'red'});
                        if(ws!=null){
-                           ws.close();
+                           ws.onerror("not received an image - closing");
                        }
-                       ws = null;
                    }
                    else{
                        $('body').css({backgroundColor: ''});
@@ -267,6 +266,7 @@ console.log("connecting to websocket");
         {
            // Web Socket is connected, send data using send()
            console.log("connected");
+           lastImageTimestamp = new Date().getTime()/1000;
         };
 
         ws.onmessage = function (evt)
@@ -311,27 +311,25 @@ console.log("connecting to websocket");
             }
             ws.send(JSON.stringify({cmd:"received"}));
         };
-        ws.onerror = function(){
-console.log("error");
+        ws.onerror = function(err){
+            console.log("error", err);
             ws.close();
             ws = null;
-            setTimeout(connectWebsocket, 1000);
         };
 
         ws.onclose = function()
         {
-console.log("onclose");
-            if(ws){
-                ws = null;
-            }
-            setTimeout(connectWebsocket, 1000);
+            console.log("onclose");
+            //if(ws){
+            //    ws = null;
+            //}
         };
 
     }
 
-    $(document).ready(function(){
-        connectWebsocket();
-    });
+    //$(document).ready(function(){
+    //    connectWebsocket();
+    //});
 
     function sendReboot(){
         if(ws){ ws.send(JSON.stringify({cmd:"reboot"})); }
@@ -342,6 +340,11 @@ console.log("onclose");
     function toggleAudio(){
         if(ws){ ws.send(JSON.stringify({cmd:"toggleAudio"})); }
     }
+
+    setInterval(function(){
+        if(ws){ return; }
+        connectWebsocket();
+    },1000);
 
 </script>
 

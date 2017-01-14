@@ -1,14 +1,20 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+pushd $DIR
+
 while true; do
 
-    pushd /var/www/html/video
+    pushd video >/dev/null
     find . -not -newermt '-5 seconds' -delete
-    popd
-    pushd /var/www/html/audio
+    popd >/dev/null
+    pushd audio >/dev/null
     find . -not -newermt '-5 seconds' -delete
-    popd
+    popd >/dev/null
 
     sleep 5;
 done
+
+popd
 

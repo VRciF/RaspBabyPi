@@ -1,10 +1,15 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 while [ 1 ]
 do
-    rm -f /var/www/html/audio/*.mp3
-    rm -f /var/www/html/video/*.jpg
-    node /var/www/html/server.js > /var/www/html/server.log 2>&1
+    pushd $DIR >/dev/null
+    rm -f ./audio/*.mp3
+    rm -f ./video/*.jpg
+    echo "starting node"
+    node server.js >server.log 2>&1
+    popd >/dev/null
     sleep 1
 done
 

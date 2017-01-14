@@ -4,9 +4,10 @@ var ws = require("nodejs-websocket")
 var path = require('path')
 var Inotify = require('inotify').Inotify;
 var fs = require('fs-extra')
-
+var http = require('http');
 var base64 = require('base64-js');
 
+var httpServer = null;
 var server = null;
 var disableAudio = false;
 
@@ -77,7 +78,7 @@ function updateNoiseProfile(filename){
                     if(minimumAmplitude == null || amp < minimumAmplitude){
                         minimumAmplitude = amp;
                         console.log("new noise: ", minimumAmplitude);
-                        execute("sox "+filename+" -n noiseprof /var/www/html/noise.prof", function(){});
+                        execute("sox "+filename+" -n noiseprof "+__dirname+"/noise.prof", function(){});
                     }
                     break;
                 }
@@ -93,12 +94,12 @@ function postProcessAudio(){
 
     var filename = postAudio;
 
-    fs.access("/var/www/html/noise.prof", fs.constants.F_OK, function(err){
+    fs.access(__dirname+"/noise.prof", fs.constants.F_OK, function(err){
         if(err){
             readAudioFile(filename);
         }
         else{
-            exec("sox "+filename+" "+filename+".cleaned.mp3 noisered /var/www/html/noise.prof 0.21", function(error, stdout, stderr){
+            exec("sox "+filename+" "+filename+".cleaned.mp3 noisered "+__dirname+"/noise.prof 0.21", function(error, stdout, stderr){
                 execSync("mv "+filename+".cleaned.mp3 "+filename);
                 readAudioFile(filename);
             });
@@ -139,7 +140,7 @@ var callback = function(av, event) {
     var no = parts[1];
 
     try{
-        var filename = "/var/www/html/"+av+"/"+event.name;
+        var filename = __dirname+"/"+av+"/"+event.name;
         if (!fs.existsSync(filename)) { return; }
 
         if(isaudio){ postAudio = filename; }
@@ -161,7 +162,7 @@ var callback = function(av, event) {
 
 var audio_dir = {
     // Change this for a valid directory in your machine.
-    path:      '/var/www/html/audio',
+    path:      __dirname+'/audio',
     watch_for: Inotify.IN_CLOSE_WRITE,
     callback:  function(ev){ callback('audio', ev); },
 };
@@ -169,7 +170,7 @@ var audio_watch_descriptor = inotify.addWatch(audio_dir);
 
 var video_dir = {
     // Change this for a valid directory in your machine.
-    path:      '/var/www/html/video',
+    path:      __dirname+'/video',
     watch_for: Inotify.IN_CLOSE_WRITE,
     callback:  function(ev){ callback('video', ev); },
 };
@@ -209,13 +210,62 @@ server = ws.createServer(function (conn) {
                 break;
         }
     })
-    conn.on("error", function(){
+    conn.on("error", function(err){
+        console.log("connection error", err);
         conn.close();
     });
     conn.on("close", function (code, reason) {
-        console.log("Connection closed")
-    })
-}).listen(8080)
+        console.log("Connection closed", code, reason);
+    });
+}).listen(8080);
+
+var httpdispatcher = require('httpdispatcher');
+var dispatcher = new httpdispatcher();
+dispatcher.setStaticDirname(__dirname);
+dispatcher.setStatic('.');
+dispatcher.onGet("/", function(request, response) {
+    var filePath = path.join(__dirname, 'index.html');
+    var stat = fs.statSync(filePath);
+
+    response.writeHead(200, {
+        'Content-Type': 'text/html',
+        'Content-Length': stat.size
+    });
+
+    var readStream = fs.createReadStream(filePath);
+    // We replaced all the event handlers with a simple call to readStream.pipe()
+    readStream.pipe(response);
+});
+
+httpServer = http.createServer(function(request, response){
+    try {
+        console.log(request.url);
+
+        var filePath = path.join(__dirname, request.url);
+        var head = {};
+        if(request.url == '/'){
+            filePath = path.join(__dirname, 'index.html');
+            head['Content-Type'] = 'text/html';
+        }
+        var stat = fs.statSync(filePath);
+        head['Content-Length'] = stat.size;
+        var stat = fs.statSync(filePath);
+        response.writeHead(200, head);
+        var readStream = fs.createReadStream(filePath);
+        readStream.pipe(response);
+
+        //log the request on console
+        //console.log(request.url);
+        //Disptach
+        //dispatcher.dispatch(request, response);
+    } catch(err) {
+        console.log(err);
+    }
+});
+
+httpServer.listen(80, function(){
+    console.log("server listening");
+});
 
 setTimeout(postProcessAudio, 1000);
 

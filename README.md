@@ -11,3 +11,25 @@ The microphone creates 1 second mp3 chunks which are sent to the browser using w
 So basically every browser should be able to get the video stream, whereas for the audio stream a browser supporting web audio api is needed.
 
 Since audio is a bit tricky to not get clicking noises in between the mp3 chunks, an expermiental noise reducer is implemented which automatically detects background noise and removes it from the mp3 chunks.
+
+# Installation
+apt-get update
+apt-get upgrade
+apt-get install -y sox
+
+pushd /tmp
+
+git clone --depth 1 git://git.videolan.org/x264
+cd x264
+./configure --host=arm-unknown-linux-gnueabi --enable-static --disable-opencl
+make -j 4
+sudo make install
+ 
+# build and make ffmpeg
+git clone --depth=1 git://source.ffmpeg.org/ffmpeg.git
+cd ffmpeg
+./configure --arch=armel --target-os=linux --enable-gpl --enable-libx264 --enable-nonfree --enable-libfreetype
+make -j4
+sudo make install
+
+popd
