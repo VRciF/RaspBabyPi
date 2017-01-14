@@ -8,6 +8,7 @@ var fs = require('fs-extra')
 var base64 = require('base64-js');
 
 var server = null;
+var disableAudio = false;
 
 var inotify = new Inotify(); //persistent by default, new Inotify(false) //no persistent
 
@@ -19,7 +20,7 @@ function sendContent(conn){
     try{
         conn.isDrain = false;
 
-        var msg = { audio: null, video: null, audioName: null };
+        var msg = { audio: null, video: null, audioName: null, disableAudio: disableAudio };
         if(conn.messageQueue.audio){
             msg.audio = conn.messageQueue.audio.toString('base64');
             msg.audioName = conn.messageQueue.audioName;
@@ -39,6 +40,72 @@ function sendContent(conn){
     }
 }
 
+var isAudioPostProcessRunning = false;
+
+var postAudio = null;
+
+function readAudioFile(filename){
+    var parsedPath = path.parse(filename);
+    var name = parsedPath.base;
+
+        fs.readFile(filename, function(err, content){
+           if(err){ return; }
+
+           //console.log("file read: ", filename, content, fs.statSync(filename));
+           for(var i=0;i<server.connections.length;i++){
+               server.connections[i].messageQueue.audio = content;
+               server.connections[i].messageQueue.audioName = name;
+
+               if(server.connections[i].isDrain){
+                   sendContent(server.connections[i]);
+               }
+           }
+           updateNoiseProfile(filename);
+        });
+}
+
+function updateNoiseProfile(filename){
+    execute("sox "+filename+" -n stat", function(stdout, stderr){
+        postAudio = null;
+        isAudioPostProcessRunning = false;
+
+                var lines = stderr.split('\n');
+                for(var i=0;i<lines.length;i++){
+                    if(lines[i].indexOf("Maximum amplitude")==-1){ continue; }
+                    var amp = parseFloat(lines[i].replace( /^\D+/g, ''));
+                    if(amp <= 0.013){ break; }
+                    if(minimumAmplitude == null || amp < minimumAmplitude){
+                        minimumAmplitude = amp;
+                        console.log("new noise: ", minimumAmplitude);
+                        execute("sox "+filename+" -n noiseprof /var/www/html/noise.prof", function(){});
+                    }
+                    break;
+                }
+    });
+}
+
+function postProcessAudio(){
+    if(!postAudio){ return; }
+
+    if(isAudioPostProcessRunning){ return; }
+
+    isAudioPostProcessRunning = true;
+
+    var filename = postAudio;
+
+    fs.access("/var/www/html/noise.prof", fs.constants.F_OK, function(err){
+        if(err){
+            readAudioFile(filename);
+        }
+        else{
+            exec("sox "+filename+" "+filename+".cleaned.mp3 noisered /var/www/html/noise.prof 0.21", function(error, stdout, stderr){
+                execSync("mv "+filename+".cleaned.mp3 "+filename);
+                readAudioFile(filename);
+            });
+        }
+    });
+}
+
 var previousAudio = null;
 var minimumAmplitude = null;
 
@@ -56,9 +123,9 @@ var callback = function(av, event) {
     if (!(mask & Inotify.IN_CLOSE_WRITE)) {
         return;
     }
-    var extension = path.extname(event.name);
 
     var isaudio = (av=='audio') ? true : false;
+    if(isaudio && disableAudio){ return; } 
 
     //if(isaudio){
     //    if(!previousAudio){ previousAudio = event.name; return; }
@@ -75,44 +142,17 @@ var callback = function(av, event) {
         var filename = "/var/www/html/"+av+"/"+event.name;
         if (!fs.existsSync(filename)) { return; }
 
-        if(isaudio && fs.existsSync("/var/www/html/noise.prof")){
-            execSync("sox "+filename+" "+filename+".cleaned.mp3 noisered noise.prof 0.21");
-            execSync("mv "+filename+".cleaned.mp3 "+filename);
-        }
-
-        var content = fs.readFileSync(filename);
-        //console.log("file read: ", filename, content, fs.statSync(filename));
-        if(!isaudio){
+        if(isaudio){ postAudio = filename; }
+        else{
+            var content = fs.readFileSync(filename);
+            //console.log("file read: ", filename, content, fs.statSync(filename));
             fs.unlinkSync(filename);
-        }
-        for(var i=0;i<server.connections.length;i++){
-            if(isaudio){
-                server.connections[i].messageQueue.audio = content;
-                server.connections[i].messageQueue.audioName = event.name;
-            }
-            else{
+            for(var i=0;i<server.connections.length;i++){
                 server.connections[i].messageQueue.video = content;
-            }
-
-            if(server.connections[i].isDrain){
-                sendContent(server.connections[i]);
-            }
-        }
-        if(isaudio){
-            execute("sox "+filename+" -n stat", function(stdout, stderr){
-                var lines = stderr.split('\n');
-                for(var i=0;i<lines.length;i++){
-                    if(lines[i].indexOf("Maximum amplitude")==-1){ continue; }
-                    var amp = parseFloat(lines[i].replace( /^\D+/g, ''));
-                    if(amp <= 0.013){ break; }
-                    if(minimumAmplitude == null || amp < minimumAmplitude){
-                        minimumAmplitude = amp;
-                        console.log("new noise: ", minimumAmplitude);
-                        execute("sox "+filename+" -n noiseprof /var/www/html/noise.prof", function(){});
-                    }
-                    break;
+                if(server.connections[i].isDrain){
+                    sendContent(server.connections[i]);
                 }
-            });
+            }
         }
     }catch(e){
         console.log("reading file failed: "+event.name, e);
@@ -164,6 +204,9 @@ server = ws.createServer(function (conn) {
             case "shutdown":
                 exec("shutdown -h now");
                 break;
+            case "toggleAudio":
+                disableAudio = !disableAudio;
+                break;
         }
     })
     conn.on("error", function(){
@@ -173,4 +216,6 @@ server = ws.createServer(function (conn) {
         console.log("Connection closed")
     })
 }).listen(8080)
+
+setTimeout(postProcessAudio, 1000);
 

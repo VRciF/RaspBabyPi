@@ -20,7 +20,10 @@
 
     </head>
     <body>
-        <div id="debugDiv" style="width:400px;height:25px;"></div><button onclick="sendReboot()">Reboot</button><br/>
+        <div id="debugDiv" style="width:400px;height:25px;"></div><br/>
+        <button onclick="sendReboot()">Reboot</button><br/><br/>
+        <button onclick="toggleAudio()">Enable/Disable audio</button><br/><br/>
+
         <img src="" id="tmp" style="display:none;">
         <img src="" id="stream" style=""/>
         <canvas id="meter" width="100" height="400"></canvas>
@@ -29,6 +32,7 @@
         <script>
             var lastImageTimestamp = 0;
             var ws = null;
+            var disableAudio = false;
 
                Date.prototype.yyyymmdd = function() {
                    var mm = this.getMonth() + 1; // getMonth() is zero-based
@@ -41,10 +45,14 @@
                };
                setInterval(function(){
                    var now = new Date().yyyymmdd();
-                   $('#debugDiv').html(now+" "+(!ws ? ": Websocket not connected!" : ""));
+                   $('#debugDiv').html(now+" "+(!ws ? ": Websocket not connected!" : "")+" : "+(disableAudio?"muted":""));
                    var nows = new Date().getTime()/1000;
                    if((nows-lastImageTimestamp)>3){
                        $('body').css({backgroundColor: 'red'});
+                       if(ws!=null){
+                           ws.close();
+                       }
+                       ws = null;
                    }
                    else{
                        $('body').css({backgroundColor: ''});
@@ -252,6 +260,7 @@
     });
 
     function connectWebsocket(){
+console.log("connecting to websocket");
         ws = new WebSocket("ws://"+window.location.hostname+":8080/");
 
         ws.onopen = function()
@@ -263,6 +272,9 @@
         ws.onmessage = function (evt)
         {
             var packet = JSON.parse(evt.data);
+            disableAudio = packet.disableAudio;
+
+//console.log(packet);
 
             if(packet.audio){
                 try{
@@ -300,6 +312,7 @@
             ws.send(JSON.stringify({cmd:"received"}));
         };
         ws.onerror = function(){
+console.log("error");
             ws.close();
             ws = null;
             setTimeout(connectWebsocket, 1000);
@@ -307,10 +320,11 @@
 
         ws.onclose = function()
         {
+console.log("onclose");
             if(ws){
                 ws = null;
-                setTimeout(connectWebsocket, 1000);
             }
+            setTimeout(connectWebsocket, 1000);
         };
 
     }
@@ -325,6 +339,10 @@
     function sendShutdown(){
         if(ws){ ws.send(JSON.stringify({cmd:"shutdown"})); }
     }
+    function toggleAudio(){
+        if(ws){ ws.send(JSON.stringify({cmd:"toggleAudio"})); }
+    }
+
 </script>
 
     </body>
