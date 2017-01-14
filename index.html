@@ -49,7 +49,7 @@
                    var nows = new Date().getTime()/1000;
                    if((nows-lastImageTimestamp)>3){
                        $('body').css({backgroundColor: 'red'});
-                       if(ws!=null){
+                       if(ws!=null && ws.readyState == ws.OPEN){
                            ws.onerror("not received an image - closing");
                        }
                    }
@@ -314,15 +314,12 @@ console.log("connecting to websocket");
         ws.onerror = function(err){
             console.log("error", err);
             ws.close();
-            ws = null;
         };
 
         ws.onclose = function()
         {
             console.log("onclose");
-            //if(ws){
-            //    ws = null;
-            //}
+            ws = null;
         };
 
     }
