@@ -31,11 +31,13 @@ pushd /tmp
 #time make -j 4
 #sudo make install
 
+sudo apt-get install libmp3lame-dev
+
 echo "installing ffmpeg"
 git clone --depth=1 git://source.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 #./configure --arch=armel --target-os=linux --enable-gpl --enable-libx264 --enable-nonfree --enable-libfreetype
-./configure --arch=armel --target-os=linux --enable-gpl --enable-nonfree --enable-libfreetype
+./configure --arch=armel --target-os=linux --enable-gpl --enable-nonfree --enable-libfreetype --enable-libmp3lame
 time make -j4
 sudo make install
 
