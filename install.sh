@@ -32,7 +32,7 @@ pushd /tmp
 #apt-get update
 #apt-get install git autoconf automake build-essential checkinstall libass-dev libgpac-dev libmp3lame-dev \
 #libopencore-amrnb-dev libopencore-amrwb-dev librtmp-dev libspeex-dev libtheora-dev libtool libvorbis-dev \
-#pkg-config texi2html zlib1g-dev yasm dh-make fakeroot libfdk-aac-dev libx264-dev
+#pkg-config texi2html zlib1g-dev yasm dh-make fakeroot libfdk-aac-dev libx264-dev libjack0
 #cd ~/tmp
 #git clone --depth 1 git://github.com/mstorsjo/fdk-aac.git
 #cd fdk-aac
