@@ -57,6 +57,7 @@ git clone --depth=1 git://source.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 #./configure --arch=armel --target-os=linux --enable-gpl --enable-libx264 --enable-nonfree --enable-libfreetype
 #./configure --enable-gpl --enable-libx264 --enable-nonfree --enable-mmal --enable-omx --enable-omx-rpi --enable-libfdk-aac --enable-gpl --enable-libass --enable-libfdk-aac --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-nonfree --enable-version3
+#./configure --enable-gpl --enable-nonfree --enable-mmal --enable-omx --enable-omx-rpi --enable-gpl --enable-libass --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-nonfree --enable-version3
 ./configure --arch=armel --target-os=linux --enable-gpl --enable-nonfree --enable-libfreetype --enable-libmp3lame
 time make -j4
 sudo make install
