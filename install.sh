@@ -61,7 +61,7 @@ make
 checkinstall --pkgname=libaacplus --pkgversion="2.0.2" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
-wget http://mirrors.zerg.biz/alsa/lib/alsa-lib-1.0.25.tar.bz2
+wget ftp://ftp.alsa-project.org/pub/lib/alsa-lib-1.0.25.tar.bz2
 tar xjf alsa-lib-1.0.25.tar.bz2
 cd alsa-lib-1.0.25/
 ./configure --enable-shared --enable-static --with-parameter-expansion-string-replace-capable-shell=/bin/bash --host=arm-unknown-linux-gnueabi
