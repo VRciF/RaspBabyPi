@@ -32,7 +32,7 @@ pushd /tmp
 #apt-get update
 #apt-get install git autoconf automake build-essential checkinstall libass-dev libgpac-dev libmp3lame-dev \
 #libopencore-amrnb-dev libopencore-amrwb-dev librtmp-dev libspeex-dev libtheora-dev libtool libvorbis-dev \
-#pkg-config texi2html zlib1g-dev yasm dh-make fakeroot libfdk-aac-dev libx264-dev libjack0
+#pkg-config texi2html zlib1g-dev yasm dh-make fakeroot libfdk-aac-dev libx264-dev libjack0 libfftw3-dev libtool libtool-bin unzip
 #cd ~/tmp
 #git clone --depth 1 git://github.com/mstorsjo/fdk-aac.git
 #cd fdk-aac
@@ -48,31 +48,25 @@ pushd /tmp
 #cd x264
 #./configure --host=arm-unknown-linux-gnueabi --enable-static --disable-opencl
 #time make -j 4
-#sudo make install
+#sudo checkinstall --pkgname=x264 --pkgversion="$(date +%Y%m%d%H%M)-git" --backup=no --deldoc=yes --fstrans=no --default
+cd ..
 
 sudo apt-get install libmp3lame-dev
 
-git clone git://git.videolan.org/x264
-cd x264/
-./configure --enable-static --disable-opencl
-time make -j4 # 1m25.560
-checkinstall
-cd ..
-
-wget http://217.20.164.161/~tipok/aacplus/libaacplus-2.0.2.tar.gz
+wget http://tipok.org.ua/downloads/media/aacplus/libaacplus/libaacplus-2.0.2.tar.gz
 tar -xzf libaacplus-2.0.2.tar.gz
 cd libaacplus-2.0.2
-./autogen.sh --with-parameter-expansion-string-replace-capable-shell=/bin/bash --host=arm-unknown-linux-gnueabi --enable-static --prefix=/my/path/were/i/keep/built/arm/stuff
+./autogen.sh --enable-shared --enable-static --with-parameter-expansion-string-replace-capable-shell=/bin/bash --host=arm-unknown-linux-gnueabi
 make -j4
-checkinstall
+checkinstall --pkgname=libaacplus --pkgversion="2.0.2" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
 wget http://mirrors.zerg.biz/alsa/lib/alsa-lib-1.0.25.tar.bz2
 tar xjf alsa-lib-1.0.25.tar.bz2
 cd alsa-lib-1.0.25/
-./configure --host=arm-unknown-linux-gnueabi --prefix=/my/path/were/i/keep/built/arm/stuff
+./configure --enable-shared --enable-static --with-parameter-expansion-string-replace-capable-shell=/bin/bash --host=arm-unknown-linux-gnueabi
 make -j4
-checkinstall
+checkinstall --pkgname=alsa-lib --pkgversion="1.0.25" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
 echo "installing ffmpeg"
