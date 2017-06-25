@@ -57,7 +57,7 @@ wget http://tipok.org.ua/downloads/media/aacplus/libaacplus/libaacplus-2.0.2.tar
 tar -xzf libaacplus-2.0.2.tar.gz
 cd libaacplus-2.0.2
 ./autogen.sh --enable-shared --enable-static --with-parameter-expansion-string-replace-capable-shell=/bin/bash --host=arm-unknown-linux-gnueabi
-make -j4
+make
 checkinstall --pkgname=libaacplus --pkgversion="2.0.2" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
