@@ -69,12 +69,19 @@ make -j4
 checkinstall --pkgname=alsa-lib --pkgversion="1.0.25" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
+git clone https://chromium.googlesource.com/webm/libvpx
+cd libvpx/
+./configure --enable-static — disable-examples --disable-unit-tests
+make
+checkinstall --pkgname=alsa-lib --pkgversion="$(date +%Y%m%d%H%M)" --backup=no --deldoc=yes --fstrans=no --default
+cd ..
+
 echo "installing ffmpeg"
 git clone --depth=1 git://source.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 #./configure --arch=armel --target-os=linux --enable-gpl --enable-libx264 --enable-nonfree --enable-libfreetype
 #./configure --enable-gpl --enable-libx264 --enable-nonfree --enable-mmal --enable-omx --enable-omx-rpi --enable-libfdk-aac --enable-gpl --enable-libass --enable-libfdk-aac --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-nonfree --enable-version3
-#./configure --enable-gpl --enable-nonfree --enable-mmal --enable-omx --enable-libaacplus --enable-libfreetype --enable-omx-rpi --enable-gpl --enable-libass --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-nonfree --enable-version3
+#./configure --enable-gpl --enable-nonfree --enable-mmal --enable-omx --enable-libvpx --enable-libaacplus --enable-libfreetype --enable-omx-rpi --enable-gpl --enable-libass --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-nonfree --enable-version3
 ./configure --arch=armel --target-os=linux --enable-gpl --enable-nonfree --enable-libfreetype --enable-libmp3lame
 time make -j4
 sudo make install
