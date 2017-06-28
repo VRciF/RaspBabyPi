@@ -73,7 +73,7 @@ git clone https://chromium.googlesource.com/webm/libvpx
 cd libvpx/
 ./configure --enable-static — disable-examples --disable-unit-tests
 make
-checkinstall --pkgname=alsa-lib --pkgversion="$(date +%Y%m%d%H%M)" --backup=no --deldoc=yes --fstrans=no --default
+checkinstall --pkgname=libvpx --pkgversion="$(date +%Y%m%d%H%M)" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
 
 echo "installing ffmpeg"
@@ -81,7 +81,7 @@ git clone --depth=1 git://source.ffmpeg.org/ffmpeg.git
 cd ffmpeg
 ./configure --enable-gpl --enable-libx264 --enable-nonfree --enable-libfreetype --enable-mmal --enable-omx --enable-omx-rpi --enable-libfdk-aac --enable-libass --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libspeex --enable-librtmp --enable-libtheora --enable-libvorbis --enable-version3 --enable-libvpx
 time make -j4
-sudo make install
+checkinstall --pkgname=ffmpeg --pkgversion="$(date +%Y%m%d%H%M)" --backup=no --deldoc=yes --fstrans=no --default
 
 popd
 
