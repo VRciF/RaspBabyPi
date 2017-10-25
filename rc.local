@@ -2,15 +2,19 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+echo 0 >/sys/class/leds/led1/brightness # red led
+echo 0 >/sys/class/leds/led0/brightness # green led
+
 mount -t tmpfs -o size=30m tmpfs $DIR/video
 mount -t tmpfs -o size=10m tmpfs $DIR/audio
 
 pushd $DIR
 
-nohup ./stream.webcam.video.sh &
-nohup ./stream.webcam.audio.sh &
-nohup ./cleanup.dirs.sh &
+nohup ./stream.webcam.video.sh >/dev/null 2>&1 &
+#nohup ./stream.webcam.audio.sh &
+nohup ./cleanup.dirs.sh >/dev/null 2>&1 &
 nohup ./nodejs.server.sh &
+nohup ./ping.sh >/dev/null 2>&1 &
 
 popd
 

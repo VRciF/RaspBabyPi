@@ -11,6 +11,6 @@ do
     echo "" > video.log
     ffmpeg -loglevel error -f video4linux2 -s 640x480 -framerate 10 -i /dev/video0 -y -vf "drawtext=fontfile=/opt/vc/src/hello_pi/hello_font/Vera.ttf:text='%{localtime\:%T}': fontcolor=red@1.:fontsize=40:x=7:y=450" -f image2 -q:v 1 ./video/stream_%02d.jpg >video.log 2>&1
     popd >/dev/null
-    sleep 1
+    sleep 5
 done
 

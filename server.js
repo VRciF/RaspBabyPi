@@ -5,7 +5,6 @@ var path = require('path')
 var Inotify = require('inotify').Inotify;
 var fs = require('fs-extra')
 var http = require('http');
-var base64 = require('base64-js');
 
 var httpServer = null;
 var server = null;
@@ -77,7 +76,7 @@ function updateNoiseProfile(filename){
                     if(amp <= 0.013){ break; }
                     if(minimumAmplitude == null || amp < minimumAmplitude){
                         minimumAmplitude = amp;
-                        console.log("new noise: ", minimumAmplitude);
+                        //console.log("new noise: ", minimumAmplitude);
                         execute("sox "+filename+" -n noiseprof "+__dirname+"/noise.prof", function(){});
                     }
                     break;
@@ -183,7 +182,7 @@ var video_watch_descriptor = inotify.addWatch(video_dir);
 //});
 
 server = ws.createServer(function (conn) {
-    console.log("new connection: ", new Date());
+    //console.log("new connection: ", new Date());
     conn.sendAudio = false;
     conn.sendVideo = false;
     conn.isDrain = true;
@@ -215,7 +214,7 @@ server = ws.createServer(function (conn) {
         conn.close();
     });
     conn.on("close", function (code, reason) {
-        console.log("Connection closed", code, reason);
+        //console.log("Connection closed", code, reason);
     });
 }).listen(8080);
 
@@ -239,7 +238,7 @@ dispatcher.onGet("/", function(request, response) {
 
 httpServer = http.createServer(function(request, response){
     try {
-        console.log(request.url);
+        //console.log(request.url);
 
         var filePath = path.join(__dirname, request.url);
         var head = {};
