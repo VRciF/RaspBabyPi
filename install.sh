@@ -71,7 +71,7 @@ cd ..
 
 git clone https://chromium.googlesource.com/webm/libvpx
 cd libvpx/
-./configure --enable-static — disable-examples --disable-unit-tests
+./configure --enable-static --disable-examples --disable-unit-tests
 make
 checkinstall --pkgname=libvpx --pkgversion="$(date +%Y%m%d%H%M)" --backup=no --deldoc=yes --fstrans=no --default
 cd ..
